@@ -14,6 +14,12 @@ class User:
         self.old_password[0] = password
         self.count = 1 # Custom counter to keep track of the number of times the user has changed their password
 
+        # --- Preview buffer state (Task 1.3) ---
+        self._preview_cap = 3
+        self._buf = ArrayR(self._preview_cap)  # capacity == current cap
+        self._head = 0                          # index of oldest
+        self._size = 0                          # number of items currently stored
+
     def change_password(self, new_password):
         """
         Analyse your time complexity of this method.
@@ -77,13 +83,52 @@ class User:
 
         # send to server
         remote_server.post_tiptop(self.username, flipped_tiptop)
+
     
+    # ---- Task 1.3: store in circular buffer (most recent at the tail) ----
+        if self._size < self._preview_cap:
+            tail = (self._head + self._size) % self._preview_cap
+            self._buf[tail] = flipped_tiptop
+            self._size += 1
+        else:
+            # buffer full: overwrite oldest, move head forward
+            self._buf[self._head] = flipped_tiptop
+            self._head = (self._head + 1) % self._preview_cap
+
     def get_preview(self):
         """
         Analyse your time complexity of this method.
         """
-        pass
-    
+        """
+        Return up to X most-recent TipTops (most recent first),
+        then increase X by 1 for next time. Only future posts fill new slots.
+        Build and return an ArrayR (no Python lists).
+        Time: O(K), K = items currently stored (≤ cap).
+        """
+        # newest → oldest: build result
+        result = ArrayR(self._size)
+        if self._size > 0:
+            cap_now = len(self._buf)  # equal to self._preview_cap at this time
+            # newest index is (head + size - 1) % cap
+            for i in range(self._size):
+                idx = (self._head + self._size - 1 - i) % cap_now
+                result[i] = self._buf[idx]
+
+        # grow preview cap for NEXT time
+        self._preview_cap += 1
+
+        # if cap increased beyond current buffer capacity, reallocate buffer
+        if self._preview_cap > len(self._buf):
+            new_buf = ArrayR(self._preview_cap)
+            # copy current items oldest → newest to new_buf[0..size-1]
+            for i in range(self._size):
+                src = (self._head + i) % len(self._buf)
+                new_buf[i] = self._buf[src]
+            self._buf = new_buf
+            self._head = 0  # oldest now at index 0
+
+        return result
+
     def generate_feed(self, users_tiptops):
         """
         1054 Only - 1008/2085 welcome to attempt if you're up for a challenge, but no marks are allocated.
