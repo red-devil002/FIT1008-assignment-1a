@@ -41,7 +41,42 @@ class User:
         """
         Analyse your time complexity of this method.
         """
-        remote_server.post_tiptop(self.username, tiptop)
+
+        # Creating 3D array to store the tiptop
+        R = len(tiptop)  # Number of rows
+        C = len(tiptop[0])     # Number of columns
+
+        """
+        Creating the new 3D array to store the tiptop.
+        The new 3D array will have the same dimensions as the original tiptop.
+        """
+        flipped_tiptop = ArrayR(R)
+        for _ in range(R):
+            row_array = ArrayR(C)
+            flipped_tiptop[_] = row_array
+            for _ in range(C):
+                pixel = ArrayR(3)
+                row_array[_] = pixel
+
+        # fill flipped with rotated + blue-capped pixels
+        for r in range(R):
+            for c in range(C):
+                dest_r = R - 1 - r
+                dest_c = C - 1 - c
+
+                src_pixel = tiptop[r][c]      # [R,G,B]
+                Rv = src_pixel[0]
+                Gv = src_pixel[1]
+                Bv = src_pixel[2]
+                if Bv > 200:
+                    Bv = 200
+
+                flipped_tiptop[dest_r][dest_c][0] = Rv
+                flipped_tiptop[dest_r][dest_c][1] = Gv
+                flipped_tiptop[dest_r][dest_c][2] = Bv
+
+        # send to server
+        remote_server.post_tiptop(self.username, flipped_tiptop)
     
     def get_preview(self):
         """
