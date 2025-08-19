@@ -2,14 +2,45 @@ import remote_server
 
 
 class Session:
+    """
+    TipTop viewing session.
+
+    Task 2.1 requirements:
+    - Store the user who started the session
+    - Store the initial TipTop (3D array)
+    - Store the per-session viewing limit (max_tiptops_in_session)
+    - Provide get_current_tiptop() to return the currently open TipTop
+
+    Notes:
+    - We set up minimal nav/blueness state now to make 2.2+ trivial.
+    """
     def __init__(self, username, starting_tiptop, max_tiptops_in_session):
         """
         Analyse your time complexity of this method.
         """
-        self.username = username
+        # who is viewing
+        self._user = username
+
+        # the TipTop currently open in this session (3D array)
+        self._current = starting_tiptop
+
+        # dynamic session limit provided by the app
+        self._max_tiptops = max_tiptops_in_session
+
+        # Tracks the record of how many unique TipTops have been opened in a particulary session.
+        self._opened_count = 1
+
+        # --- Minimal blueness state (will be used in 2.3) ---
+        # We’ll track per-TipTop blueness later; for 2.1 we just initialise counters.
+        self._blueness_median_cached = None  # placeholder for O(1) median in 2.3
     
     def get_current_tiptop(self):
-        pass
+        """
+        Return the TipTop currently open in this session.
+
+        Time complexity: O(1)
+        """
+        return self._current
 
     def swipe_up(self, new_tiptop):
         """
