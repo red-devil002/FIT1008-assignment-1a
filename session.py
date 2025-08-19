@@ -39,9 +39,21 @@ class Session:
         self._fwd_stack = ArrayR(1)  
         self._fwd_size = 0
 
-        # --- Minimal blueness state (will be used in 2.3) ---
-        # We’ll track per-TipTop blueness later; for 2.1 we just initialise counters.
-        self._blueness_median_cached = None  # placeholder for O(1) median in 2.3
+        # ----- 2.3 blueness state -----
+        # histogram for blueness values (0..201)
+        self._blue_hist = ArrayR(202)
+        for i in range(202):
+            self._blue_hist[i] = 0
+        # number of *distinct* tiptops that have contributed to stats
+        self._n_viewed = 0
+        # cached median (float or int)
+        self._median_value = 0.0
+
+        # add the initial tiptop’s blueness
+        b0 = self._compute_blueness(self._current)
+        self._blue_hist[b0] += 1
+        self._n_viewed = 1
+        self._recompute_median()
     
     def get_current_tiptop(self):
         """
@@ -78,6 +90,14 @@ class Session:
 
         # opened unique tiptop count (assumption guarantees we won't exceed max)
         self._opened_count += 1
+
+        """
+        2.3: update blueness stats for this NEW tiptop
+        """
+        b = self._compute_blueness(new_tiptop)
+        self._blue_hist[b] += 1
+        self._n_viewed += 1
+        self._recompute_median()
     
     def swipe_right(self):
         """
@@ -128,7 +148,14 @@ class Session:
         self._current = self._fwd_stack[self._fwd_size]
     
     def get_blueness(self):
-        pass
+        """
+        Return the session blueness (median of blueness over all viewed TipTops).
+        Must be O(1): we return a cached value updated on changes.
+        """
+        # If there are no viewed tiptops (shouldn’t happen), return 0
+        if self._n_viewed == 0:
+            return 0
+        return self._median_value
     
     def pinch_out(self, row, col, intensity):
         """
@@ -142,6 +169,70 @@ class Session:
         """
         pass
 
+
+    """
+        private utilities for 2.3
+    """
+
+    def _recompute_median(self):
+        """
+        Recompute and cache the median from the histogram.
+        Domain is fixed (0..201), so this is O(202) = O(1) constant time.
+        """
+        imput_n = self._n_viewed
+        # odd → the (n+1)//2 -th item; even → average of n//2 and n//2 + 1
+        if imput_n <= 0:
+            self._median_value = 0.0
+            return
+
+        if (imput_n % 2) == 1:
+            target = (imput_n + 1) // 2
+            cum = 0
+            for v in range(202):
+                cum += self._blue_hist[v]
+                if cum >= target:
+                    # exact value
+                    self._median_value = float(v)
+                    return
+        else:
+            t1 = imput_n // 2
+            t2 = t1 + 1
+            cum = 0
+            m1 = None
+            m2 = None
+            for v in range(202):
+                cum += self._blue_hist[v]
+                if (m1 is None) and (cum >= t1):
+                    m1 = v
+                if cum >= t2:
+                    m2 = v
+                    break
+            # average; e.g., may produce .5 like 2.5 (matches example)
+            self._median_value = (m1 + m2) / 2.0
+
+    def _compute_blueness(self, tiptop):
+        """
+        Count unique Blue values (index 2) across all pixels.
+        Blue values in sessions are capped at 200, so domain = 0..200.
+
+        Time: O(P) where P is pixels in the tiptop.
+        """
+        # seen[0..200] = 0/1
+        seen = ArrayR(201)
+        for i in range(201):
+            seen[i] = 0
+
+        R = len(tiptop)
+        C = len(tiptop[0])
+
+        count_unique = 0
+        for row in range(R):
+            for col in range(C):
+                ans_gurr = tiptop[row][col][2]      # 0..200 guaranteed per spec
+                if seen[ans_gurr] == 0:
+                    seen[ans_gurr] = 1
+                    count_unique += 1
+        return count_unique
 
 if __name__ == "__main__":
     # Write tests for your code here...
