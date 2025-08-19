@@ -1,4 +1,5 @@
 import remote_server
+from data_structures import ArrayR
 
 
 class Session:
@@ -19,7 +20,7 @@ class Session:
         Analyse your time complexity of this method.
         """
         # who is viewing
-        self._user = username
+        self.username = username
 
         # the TipTop currently open in this session (3D array)
         self._current = starting_tiptop
@@ -29,6 +30,14 @@ class Session:
 
         # Tracks the record of how many unique TipTops have been opened in a particulary session.
         self._opened_count = 1
+
+        # --- Minimal nav state (ready for Task 2.2) ---
+        # Back and forward stacks using ArrayR (no Python lists)
+        self._back_stack = ArrayR(1) 
+        self._back_size = 0
+
+        self._fwd_stack = ArrayR(1)  
+        self._fwd_size = 0
 
         # --- Minimal blueness state (will be used in 2.3) ---
         # We’ll track per-TipTop blueness later; for 2.1 we just initialise counters.
@@ -44,21 +53,79 @@ class Session:
 
     def swipe_up(self, new_tiptop):
         """
-        Analyse your time complexity of this method.
+        Open a NEW TipTop.
+        - Push current into back stack.
+        - Clear forward stack (can't redo after opening something new).
+        - Set current to new_tiptop.
+        Time: Amortized O(1)
         """
-        pass
+        # push current onto back stack
+        if self._back_size == len(self._back_stack):
+            # grow back stack
+            new_cap = max(1, len(self._back_stack) * 2)
+            bigger = ArrayR(new_cap)
+            for i in range(self._back_size):
+                bigger[i] = self._back_stack[i]
+            self._back_stack = bigger
+        self._back_stack[self._back_size] = self._current
+        self._back_size += 1
+
+        # clear forward stack (do not shrink capacity)
+        self._fwd_size = 0
+
+        # set current to the new tiptop
+        self._current = new_tiptop
+
+        # opened unique tiptop count (assumption guarantees we won't exceed max)
+        self._opened_count += 1
     
     def swipe_right(self):
         """
-        Analyse your time complexity of this method.
+        Go BACK by one TipTop (like browser Back).
+        - If there is no back history, do nothing.
+        - Otherwise: push current to forward stack, pop from back stack to current.
+        Time: Amortized O(1)
         """
-        pass
+        if self._back_size == 0:
+            return  # nothing to go back to
+
+        # push current onto forward stack
+        if self._fwd_size == len(self._fwd_stack):
+            new_cap = max(1, len(self._fwd_stack) * 2)
+            bigger = ArrayR(new_cap)
+            for i in range(self._fwd_size):
+                bigger[i] = self._fwd_stack[i]
+            self._fwd_stack = bigger
+        self._fwd_stack[self._fwd_size] = self._current
+        self._fwd_size += 1
+
+        # pop from back stack
+        self._back_size -= 1
+        self._current = self._back_stack[self._back_size]
 
     def swipe_left(self):
         """
-        Analyse your time complexity of this method.
+        Go FORWARD by one TipTop (undo a Back).
+        - Only works if a previous swipe_right created forward history.
+        - If there is no forward history, do nothing.
+        Time: Amortized O(1)
         """
-        pass
+        if self._fwd_size == 0:
+            return  # nothing to go forward to
+
+        # push current onto back stack
+        if self._back_size == len(self._back_stack):
+            new_cap = max(1, len(self._back_stack) * 2)
+            bigger = ArrayR(new_cap)
+            for i in range(self._back_size):
+                bigger[i] = self._back_stack[i]
+            self._back_stack = bigger
+        self._back_stack[self._back_size] = self._current
+        self._back_size += 1
+
+        # pop from forward stack
+        self._fwd_size -= 1
+        self._current = self._fwd_stack[self._fwd_size]
     
     def get_blueness(self):
         pass
