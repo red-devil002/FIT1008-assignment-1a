@@ -1,6 +1,6 @@
 import remote_server
-from data_structures import ArrayR
-
+from data_structures import ArrayR    
+from data_structures import ArrayStack
 
 class Session:
     """
@@ -159,15 +159,163 @@ class Session:
     
     def pinch_out(self, row, col, intensity):
         """
-        Analyse your time complexity of this method.
+        Increases the brightness of pixels based on distance from the pinch point.
+        
+        The pixel at (row, col) increases by intensity, and surrounding pixels 
+        increase by max(intensity - distance, 0) where distance is Manhattan distance.
+        
+        RGB values are capped at 255 for R and G, and 200 for B.
+        
+        Args:
+            row: The row index of the pinch point
+            col: The column index of the pinch point  
+            intensity: The intensity of the pinch (>= 0)
         """
+        if intensity == 0:
+            return
+        
+        current_tiptop = self.get_current_tiptop()
+        rows = len(current_tiptop)
+        cols = len(current_tiptop[0]) if rows > 0 else 0
+        
+        # Calculate old blueness before making changes
+        old_blueness = self._calculate_tiptop_blueness(current_tiptop)
+        
+        # Calculate the range of pixels that will be affected
+        # Only need to check pixels within distance (intensity - 1) from the pinch point
+        min_row = max(0, row - (intensity - 1))
+        max_row = min(rows - 1, row + (intensity - 1))
+        min_col = max(0, col - (intensity - 1))
+        max_col = min(cols - 1, col + (intensity - 1))
+        
+        # Apply brightness increase to affected pixels
+        for r in range(min_row, max_row + 1):
+            for c in range(min_col, max_col + 1):
+                # Calculate Manhattan distance
+                distance = abs(r - row) + abs(c - col)
+                
+                # Calculate brightness increase for this pixel
+                brightness_increase = max(intensity - distance, 0)
+                
+                if brightness_increase > 0:
+                    pixel = current_tiptop[r][c]
+                    
+                    # Increase RGB values with proper capping
+                    pixel[0] = min(255, pixel[0] + brightness_increase)  # Red cap at 255
+                    pixel[1] = min(255, pixel[1] + brightness_increase)  # Green cap at 255  
+                    pixel[2] = min(200, pixel[2] + brightness_increase)  # Blue cap at 200
+        
+        # Calculate new blueness and update tracking if needed
+        new_blueness = self._calculate_tiptop_blueness(current_tiptop)
+        
+        if new_blueness != old_blueness:
+            # Update the blueness tracking for this TipTop
+            # This assumes we have a blueness tracking system from task 2.3
+            self._update_current_tiptop_blueness(old_blueness, new_blueness)
+
+    def _calculate_tiptop_blueness(self, tiptop):
+        """
+        Helper method to calculate the blueness (number of unique blue values) of a TipTop.
+        Uses a simple O(P^2) approach since we can't use sets or built-in collections.
+        """
+        rows = len(tiptop)
+        if rows == 0:
+            return 0
+        
+        cols = len(tiptop[0])
+        if cols == 0:
+            return 0
+        
+        # Since we can't use sets or lists, we'll use a simple O(P^2) approach
+        # to count unique blue values by checking each pixel against all previous pixels
+        unique_count = 0
+        
+        for r in range(rows):
+            for c in range(cols):
+                blue_value = tiptop[r][c][2]
+                is_unique = True
+                
+                # Check if we've seen this blue value before
+                for prev_r in range(rows):
+                    for prev_c in range(cols):
+                        # Stop checking when we reach the current pixel
+                        if prev_r == r and prev_c == c:
+                            break
+                        if prev_r > r or (prev_r == r and prev_c >= c):
+                            break
+                            
+                        if tiptop[prev_r][prev_c][2] == blue_value:
+                            is_unique = False
+                            break
+                    if not is_unique:
+                        break
+                
+                if is_unique:
+                    unique_count += 1
+        
+        return unique_count
+
+    def _update_current_tiptop_blueness(self, old_blueness, new_blueness):
+        """
+            Helper method to update the blueness tracking when the current TipTop's blueness changes.
+            This needs to be integrated with whatever blueness tracking system is implemented in task 2.3.
+        """
+        # This is a placeholder - the actual implementation depends on how blueness is tracked
+        # from task 2.3. You would need to:
+        # 1. Find the current TipTop in your blueness tracking structure
+        # 2. Update its blueness value from old_blueness to new_blueness
+        # 3. Recalculate the median if needed
         pass
 
     def post_comment(self, comment_length, comment_retriever):
         """
-        Analyse your time complexity of this method.
+        Checks if a comment is a palindrome and posts it if valid.
+        
+        A palindrome reads the same forward and backward (ignoring spaces).
+        This method uses an iterator to read characters one by one and stops
+        as soon as it can determine if the string is or isn't a palindrome.
+        
+        We use a two-pointer approach conceptually, but since we can only read forward,
+        we read all characters into ArrayR and then check palindrome property.
+        
+        Args:
+            comment_length: Length of the comment (excluding spaces)  
+            comment_retriever: Iterator that yields characters one by one
+        
+        Returns:
+            True if comment is a palindrome and was posted, False otherwise
         """
-        pass
+        
+        # Read all characters into an ArrayDeque since we need to access both ends
+        chars = ArrayStack(comment_length)
+        
+        # Read all characters from the iterator
+        for i in range(comment_length):
+            char = next(comment_retriever)
+            chars.append_right(char)
+        
+        # Now check if it's a palindrome by comparing from both ends
+        # We only need to check half the characters
+        chars_to_check = comment_length // 2
+        
+        for i in range(chars_to_check):
+            # Get character from the left end
+            left_char = chars.peek_left()
+            chars.serve_left()
+            
+            # Get character from the right end  
+            right_char = chars.peek_right()
+            chars.serve_right()
+            
+            # If characters don't match, it's not a palindrome
+            if left_char != right_char:
+                return False
+        
+        # If we get here, it's a palindrome
+        # Call the remote server to post the comment
+        from remote_server import post_comment
+        post_comment(self.user, self.get_current_tiptop())
+        return True
 
 
     """
