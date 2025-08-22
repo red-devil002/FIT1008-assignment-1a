@@ -7,37 +7,34 @@ class User:
         """
         Analyse your time complexity of this method.
         """
+        # Code From Task 1.1
         self.username = username
-        self.password = password
+        self.password = password # Password is stored as a string using password attribute.
 
-        self.old_password = ArrayR(1) # Taking this because of the size given in the problem is max <= 50 (Resizable Array) starts from 1
-        self.old_password[0] = password
-        self.count = 1 # Custom counter to keep track of the number of times the user has changed their password
+        self.swtp_old_password = ArrayR(1) # Taking this because of the size given in the problem is max <= 50 starts from 1
+        self.swtp_old_password[0] = password
+        self.swtp_pass_count = 1 # Custom counter to keep track of the number of times the user has changed their password
 
-        # --- Preview buffer state (Task 1.3) ---
-        self._preview_cap = 3
-        self._buf = ArrayR(self._preview_cap)  # capacity == current cap
-        self._head = 0                          # index of oldest
-        self._size = 0                          # number of items currently stored
+        # Code From Task 1.3
+        self._swtp_preview_cap = 3
+        self.swtp_bufferImage = ArrayR(self._swtp_preview_cap)  # capacity == current cap
+        self.swtp_head = 0     # index of oldest
+        self._swtp_size = 0    # number of items currently stored
 
     def change_password(self, new_password):
         """
-        Analyse your time complexity of this method.
+        Variable i = number of stored passwords.
+        :complexity: Best case is O(1) where i is the number of previously used passwords.
+        The best case happens when the new password is equal to the very first element in the used passwords array, so we detect the copy immediately and raise an ValueError without scanning further.
+
+        Worst case is O(i) where i is the number of previously used passwords.
+        The worst case happens when the new password is not found in any of the previous passwords, so the loop scans through all i entries before inserting the new one.
+        However, since i is capped at 51 (50 changes + the initial password), as per our assumptions, the practical worst case is still O(1) in terms of time complexity.
         """
-        # Check if the new password is different from the old password
-        for i in range(self.count):
-            if self.old_password[i] == new_password:
+        # Checking Condition - Check if the new password is same as the current password
+        for i in range(self.swtp_pass_count):
+            if self.swtp_old_password[i] == new_password:
                 raise ValueError("Password already used. Please choose a different password.")
-            
-        # If the new password is different, add it to the old_password arrayR
-        if self.count == len(self.old_password):
-            # Resize the array if needed
-            new_array = ArrayR(len(self.old_password) * 2)
-            for i in range(len(self.old_password)):
-                new_array[i] = self.old_password[i]
-            self.old_password = new_array
-        self.old_password[self.count] = new_password
-        self.count += 1
 
         # Update the current password
         self.password = new_password
@@ -45,89 +42,86 @@ class User:
     
     def post_tiptop(self, tiptop):
         """
-        Analyse your time complexity of this method.
+        :complexity: Best and worst case are both O(P), where P = rows * cols is the number of pixels.
+        For each output pixel (r, c), we compute its source position (R-1-r, C-1-c) and copy three channel values, capping only the blue channel with a min() operation. This is a constant amount of work per pixel, so total time is linear in the number of pixels.
         """
 
-        # Creating 3D array to store the tiptop
-        R = len(tiptop)  # Number of rows
-        C = len(tiptop[0])     # Number of columns
+        # Original - Creating 3D array to store the tiptop
+        _inputval_R = len(tiptop)  # Number of rows
+        _inputval_C = len(tiptop[0])     # Number of columns
 
-        """
-        Creating the new 3D array to store the tiptop.
-        The new 3D array will have the same dimensions as the original tiptop.
-        """
-        flipped_tiptop = ArrayR(R)
-        for _ in range(R):
-            row_array = ArrayR(C)
-            flipped_tiptop[_] = row_array
-            for _ in range(C):
-                pixel = ArrayR(3)
-                row_array[_] = pixel
+        # Creating the new 3D array to store the tiptop.
+        # The new 3D array will have the same dimensions as the original tiptop.
+        swtp_flipped_tiptop = ArrayR(_inputval_R)
+        for row in range(_inputval_R):
+            swtp_row_array = ArrayR(_inputval_C)
+            swtp_flipped_tiptop[row] = swtp_row_array
+            for col in range(_inputval_C):
+                swtp_inverted_pixel = ArrayR(3)
+                swtp_row_array[col] = swtp_inverted_pixel
 
         # fill flipped with rotated + blue-capped pixels
-        for r in range(R):
-            for c in range(C):
-                dest_r = R - 1 - r
-                dest_c = C - 1 - c
+        for row in range(_inputval_R):
+            for col in range(_inputval_C):
+                swtp_fli_row_tiptop = _inputval_R - 1 - row  # flip vertically
+                swtp_fli_col_tiptop = _inputval_C - 1 - col # flip horizontally
 
-                src_pixel = tiptop[r][c]      # [R,G,B]
-                Rv = src_pixel[0]
-                Gv = src_pixel[1]
-                Bv = src_pixel[2]
-                if Bv > 200:
-                    Bv = 200
+                swtp_posted_image_px = tiptop[row][col]      # [R,G,B]
+                swtp_red = swtp_posted_image_px[0]
+                swtp_green = swtp_posted_image_px[1]
+                swtp_blue = swtp_posted_image_px[2]
+                if swtp_blue > 200:
+                    swtp_blue = 200
 
-                flipped_tiptop[dest_r][dest_c][0] = Rv
-                flipped_tiptop[dest_r][dest_c][1] = Gv
-                flipped_tiptop[dest_r][dest_c][2] = Bv
+                swtp_flipped_tiptop[swtp_fli_row_tiptop][swtp_fli_col_tiptop][0] = swtp_red
+                swtp_flipped_tiptop[swtp_fli_row_tiptop][swtp_fli_col_tiptop][1] = swtp_green
+                swtp_flipped_tiptop[swtp_fli_row_tiptop][swtp_fli_col_tiptop][2] = swtp_blue
 
         # send to server
-        remote_server.post_tiptop(self.username, flipped_tiptop)
+        remote_server.post_tiptop(self.username, swtp_flipped_tiptop)
 
     
-    # ---- Task 1.3: store in circular buffer (most recent at the tail) ----
-        if self._size < self._preview_cap:
-            tail = (self._head + self._size) % self._preview_cap
-            self._buf[tail] = flipped_tiptop
-            self._size += 1
+    # Instade of new function this pasrt of cde helps in task 1.3.
+        if self._swtp_size == self._swtp_preview_cap:
+            self.swtp_bufferImage[self.swtp_head] = swtp_flipped_tiptop
+            self.swtp_head = (self.swtp_head + 1) % self._swtp_preview_cap
         else:
-            # buffer full: overwrite oldest, move head forward
-            self._buf[self._head] = flipped_tiptop
-            self._head = (self._head + 1) % self._preview_cap
+            img_tail = (self.swtp_head + self._swtp_size) % self._swtp_preview_cap
+            self.swtp_bufferImage[img_tail] = swtp_flipped_tiptop
+            self._swtp_size += 1
 
     def get_preview(self):
         """
-        Analyse your time complexity of this method.
-        """
-        """
-        Return up to X most-recent TipTops (most recent first),
-        then increase X by 1 for next time. Only future posts fill new slots.
-        Build and return an ArrayR (no Python lists).
-        Time: O(K), K = items currently stored (≤ cap).
-        """
-        # newest → oldest: build result
-        result = ArrayR(self._size)
-        if self._size > 0:
-            cap_now = len(self._buf)  # equal to self._preview_cap at this time
-            # newest index is (head + size - 1) % cap
-            for i in range(self._size):
-                idx = (self._head + self._size - 1 - i) % cap_now
-                result[i] = self._buf[idx]
+        :complexity: Best case is O(1) when K = 0, where K is the current number of stored previews. We may allocate a new buffer but copy 0 elements and return quickly.
 
-        # grow preview cap for NEXT time
-        self._preview_cap += 1
+        Typical case without reallocation is O(K), because we construct the return structure by copying K items from newest to oldest.
+
+        Worst case is O(K) as well when capacity growth is required: we first realign the ring buffer by copying K elements into a new ArrayR, then copy the same K elements into the return structure.
+        """
+        swtp_buff_prv_result = ArrayR(self._swtp_size)
 
         # if cap increased beyond current buffer capacity, reallocate buffer
-        if self._preview_cap > len(self._buf):
-            new_buf = ArrayR(self._preview_cap)
-            # copy current items oldest → newest to new_buf[0..size-1]
-            for i in range(self._size):
-                src = (self._head + i) % len(self._buf)
-                new_buf[i] = self._buf[src]
-            self._buf = new_buf
-            self._head = 0  # oldest now at index 0
+        if self._swtp_preview_cap > len(self.swtp_bufferImage):
+            new_buf = ArrayR(self._swtp_preview_cap)
+            for i in range(self._swtp_size):
+                swtp_src = (self.swtp_head + i) % len(self.swtp_bufferImage)
+                new_buf[i] = self.swtp_bufferImage[swtp_src]
+            self.swtp_bufferImage = new_buf
+            self.swtp_head = 0  # oldest now at index 0
 
-        return result
+
+        if self._swtp_size > 0:
+            swtp_pvt_cap_now = len(self.swtp_bufferImage)  # equal to self._swtp_preview_cap at this time
+            # newest index is (head + size - 1) % cap
+            for i in range(self._swtp_size):
+                swtp_idxx = (self.swtp_head + self._swtp_size - 1 - i) % swtp_pvt_cap_now
+                swtp_buff_prv_result[i] = self.swtp_bufferImage[swtp_idxx]
+
+        # grow preview cap for NEXT time
+        self._swtp_preview_cap += 1
+
+
+        return swtp_buff_prv_result
 
     def generate_feed(self, users_tiptops):
         """
